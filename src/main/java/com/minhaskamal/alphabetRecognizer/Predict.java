@@ -19,9 +19,11 @@ public class Predict {
 	
 	public static String predict() throws Exception {
 		
-		String sampleImage = "C:\\Users\\erubi\\IdeaProjects\\" +
-				"OwODeleter\\src\\res\\sample\\testPic.png";
-		String experience = "src/res/knowledge/KnowledgeAlphabet.log";
+		/*String sampleImage = "C:\\Users\\erubi\\IdeaProjects\\" +
+				"OwODeleter\\src\\res\\sample\\testPic.png";*/
+		String sampleImage = "/home/ubuntu/res/sample/testPic.png";
+		//String experience = "src/res/knowledge/KnowledgeAlphabet.log";
+		String experience = "/home/ubuntu/res/knowledge/KnowledgeAlphabet.log";
 		String output = sampleImage + "Content.txt";
 		
 		String str = ImageToContentString(sampleImage, experience);
@@ -359,7 +361,7 @@ public class Predict {
 			break;
 			
 		default:
-			ch='~';
+			ch=' ';
 		}
 		
 		return ch;

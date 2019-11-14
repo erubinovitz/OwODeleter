@@ -13,28 +13,41 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import javax.security.auth.login.LoginException;
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
-public class Main  extends ListenerAdapter implements Runnable {
 
-    static String myToken ="";//INSERT YOUR TOKEN HERE!!
+import static java.lang.Thread.sleep;
+
+public class Main  extends ListenerAdapter implements Runnable {
+    static HashMap<String,Long> servers = new HashMap();
+    static String myToken ="NjEzNTU3ODU1MDg5NTkwMzAz.XZFfKw.Fm23hgqj53_UEkKghVmNzR9yFq4";//INSERT YOUR TOKEN HERE!!
     static String[] unacceptables;
     static String[] insults;
     static String[][] wordCreators = new String[3][];
-    static String admins[] = {"161546387870187522","213323815386611713"};
-
+    static char[][] charCreators = new char[3][];
+    static ArrayList<String> admins = new ArrayList<>();
+    static ArrayList<String> superAdmins = new ArrayList<>();
+    static boolean silent;
     static int unacceptableSize;
     /*File path to read insults from.*/
-    static String insultFilePath=new File("").getAbsolutePath()+"/src/main/java/com/" +
-            "minhaskamal/alphabetRecognizer/insults";
-    static String termFilePath=new File("").getAbsolutePath()+"/src/main/java/com/" +
-            "minhaskamal/alphabetRecognizer/Terms";
+    static String srcPath="../../../../../../../../src/main/java/com/minhaskamal/alphabetRecognizer/";
+ /*   static String insultFilePath="../insults/";
+    static String termFilePath="../Terms";
+    static String adminFilePath="../resources/admins.txt";
+    static String superAdminFilePath="../resources/superAdmins.txt";
+    static String insultListPath="../resources/insultList.txt";*/
+    static String insultFilePath="/home/ubuntu/insults/";
+    static String termFilePath="/home/ubuntu/Terms";
+    static String adminFilePath="/home/ubuntu/resources/admins.txt";
+    static String superAdminFilePath="/home/ubuntu/resources/superAdmins.txt";
+    static String insultListPath="/home/ubuntu/resources/insultList.txt";
     /*File path where we want our dummy image; this image will be replaced with the
     latest image sent in order to make sure the bot is not constantly downloading and
     saving new images.
      */
-    static String downloadImageFilePath=new File("").getAbsolutePath()+"/src/main/java/com/" +
-            "minhaskamal/alphabetRecognizer/resources/testPic.png";
+    static String downloadImageFilePath="/home/ubuntu/resources/testPic.png";
     String myDiscordToken="";
     public static void printArray(String[] arr){
         for (int i=0; i<arr.length; i++){
@@ -42,26 +55,97 @@ public class Main  extends ListenerAdapter implements Runnable {
         }
         System.out.println();
     }
+    public static void initializeAdmins(){
+        try {
+            /*File insultFolder = new File(adminFilePath);
+
+            Scanner sc = new Scanner(insultFolder);*/
+         /*   InputStream in = Main.class.getResourceAsStream(adminFilePath);*/
+            InputStream in = new FileInputStream(adminFilePath);
+            BufferedReader bufReader = new BufferedReader(new InputStreamReader(in));
+
+            String str;
+
+            while ((str = bufReader.readLine()) != null) {
+                System.out.println("adding " + str);
+                admins.add(str);
+            }
+
+
+
+
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    public static void initializeSuperAdmins(){
+        try {
+           /* InputStream in = Main.class.getResourceAsStream(superAdminFilePath);*/
+            InputStream in = new FileInputStream(superAdminFilePath);
+            BufferedReader bufReader = new BufferedReader(new InputStreamReader(in));
+
+            String str;
+
+            while ((str = bufReader.readLine()) != null) {
+                System.out.println("adding " + str);
+                superAdmins.add(str);
+            }
+
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+    }
     public Main(){
 
     }
     long lastMessageTime=0;
-    public boolean contains (String[] arr, String s){
-        for (int i=0; i<arr.length; i++){
-            if (arr[i].equals(s)) return true;
+    public boolean contains (ArrayList<String> arr, String s){
+        return admins.contains(s);
+    }
+    public boolean addAdmin(String s){
+        if (admins.contains(s))return false;
+        try {
+
+
+
+          /*  URL resourceUrl = getClass().getResource(adminFilePath);
+            File file1 = new File(resourceUrl.toURI());*/
+            OutputStream output = new FileOutputStream(adminFilePath,true);
+
+
+            output.write(("\n"+s).getBytes());
+/*
+            File file = new File(adminFilePath);
+            FileWriter writer = new FileWriter(file, true);
+            writer.write("\n" + s);
+            writer.flush();
+            writer.close();*/
+            admins.add(s);
+            return true;
         }
-        return false;
+        catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
     }
     public static void main(String[] args) throws LoginException {
 
-        initializeUnacceptables();
-        initializeInsults();
-        Train train = new Train();
-        JDABuilder builder = new JDABuilder(AccountType.BOT);
-        String token = myToken;
-        builder.setToken(token);
-        builder.addEventListeners(new Main());
-        builder.build();
+        final String dir = System.getProperty("user.dir");
+        System.out.println("current dir = " + dir);
+            initializeUnacceptables();
+            initializeInsults();
+            initializeAdmins();
+            initializeSuperAdmins();
+            Train train = new Train();
+            JDABuilder builder = new JDABuilder(AccountType.BOT);
+            String token = myToken;
+            builder.setToken(token);
+            builder.addEventListeners(new Main());
+            builder.build();
+
+
     }
     /*Returns a random insult from the insults array.*/
     public String getRandomInsult(){
@@ -70,84 +154,127 @@ public class Main  extends ListenerAdapter implements Runnable {
         return insults[b];
     }
 
-    /*
-    Discord bot that deletes messages having certain banwords, mainly OwO, UwU, etc
 
-Also prints a message randomly generated from a list of messages with intent to shame the sender
-     */
     /*Reads text from all text files in the insults folder into the insults array.*/
     public static void initializeInsults(){
-        File insultFolder = new File(insultFilePath);
-        File[] insultFiles = insultFolder.listFiles();
-        insults = new String[insultFiles.length];
 
-        Scanner sc;
-        for (int i=0; i<insults.length; i++){
-            try {
-                if(insultFiles[i].getName().endsWith("jpg")){
-                    insults[i]=insultFiles[i].getAbsolutePath();
-                    continue;
-                }
-                sc = new Scanner(insultFiles[i]);
-                insults[i]="";
 
-                while (sc.hasNextLine()){
 
-                    String s = sc.nextLine();
-                  //  System.out.println("\""+s+"\"");
-                    if (s.equals("\\n")) {
-                        insults[i] += "\n";
-                       // System.out.println("X");
+        try {
+           // InputStream in = Main.class.getResourceAsStream(insultListPath);
+            InputStream in = new FileInputStream(insultListPath);
+            BufferedReader bufReader = new BufferedReader(new InputStreamReader(in));
+            ArrayList<String> arr = new ArrayList<>();
+            String str;
+            while ((str = bufReader.readLine()) != null) {
+                arr.add(str);
+            }
+            insults = new String[arr.size()];
+
+
+
+            for (int i=0; i<arr.size(); i++){
+
+                    if(arr.get(i).endsWith("jpg")){
+                        insults[i]=insultFilePath+arr.get(i);
+                        continue;
                     }
-                    else
-                        insults[i]+=s;
+                  //  System.out.println("doing "+insultFilePath+arr.get(i));
+                //in = Main.class.getResourceAsStream(insultFilePath+arr.get(i));
+                in = new FileInputStream(insultFilePath+arr.get(i));
+                bufReader = new BufferedReader(new InputStreamReader(in));
+                insults[i]="";
+                while ((str = bufReader.readLine()) != null) {
 
+
+
+                      //  System.out.println("\""+s+"\"");
+                        if (str.equals("\\n")) {
+                            insults[i] += "\n";
+                           // System.out.println("X");
+                        }
+                        else
+                            insults[i]+=str;
+
+                    }
+                    //System.out.println((i+1)+": "+insults[i]);
                 }
-                //System.out.println((i+1)+": "+insults[i]);
-            }
-            catch (IOException e){
-                System.err.println("Could not initialize " +insultFiles[i]);
-                e.printStackTrace();
-            }
-        }
 
+            }
+        catch (IOException e){
+            System.err.println("Could not initialize insults" );
+            e.printStackTrace();
+        }
     }
     /*Initializes all banned words.*/
     public static void initializeUnacceptables() {
         Scanner sc;
         String[] paths = new String[]{"/starting","/transitioning","/middle"};
-
+        String starting="!";
         try {
             for (int a = 0; a < 3; a++) {
 
-                sc = new Scanner(new File(termFilePath + paths[a] + ".txt"));
-                int size = 0;
-                while (sc.hasNextLine()) {
-                    size++;
-                    sc.nextLine();
-                }
 
+                System.out.println("path is " +termFilePath + paths[a] + ".txt");
+                int sizeStr = 0;
+                int sizeChr=0;
                 String str;
-                BufferedReader bufReader = new BufferedReader(new InputStreamReader(new FileInputStream
-                        (termFilePath + paths[a] + "Emojis.txt"), "UTF-8"));
+
+                //InputStream in = Main.class.getResourceAsStream(termFilePath+paths[a]+".txt");
+                InputStream in = new FileInputStream(termFilePath+paths[a]+".txt");
+                System.out.println(Main.class.toString());
+                System.out.println(Main.class.getPackage().getName());
+                BufferedReader bufReader = new BufferedReader(new InputStreamReader(in));
+                System.out.println("pogU");
+
                 while ((str = bufReader.readLine()) != null) {
-                    size++;
+                    System.out.println(str);
+                    if (str.startsWith(starting)){
+                        sizeChr++;
+                    }
+                    else
+                        sizeStr++;
+                }
+
+                //in = Main.class.getResourceAsStream(termFilePath+paths[a]+"Emojis.txt");
+                 in = new FileInputStream(termFilePath+paths[a]+"Emojis.txt");
+                bufReader = new BufferedReader(new InputStreamReader(in));
+                while ((str = bufReader.readLine()) != null) {
+                    if (str.startsWith(starting)){
+                        sizeChr++;
+                    }
+                    else
+                        sizeStr++;
                 }
 
 
-                sc = new Scanner(new File(termFilePath + paths[a] + ".txt"));
-                wordCreators[a] = new String[size];
-                int index = 0;
-                for (int i = 0; sc.hasNextLine(); i++) {
-                    wordCreators[a][i] = sc.nextLine();
-                    index++;
-                }
-                bufReader = new BufferedReader(new InputStreamReader(new FileInputStream
-                        (termFilePath + paths[a] + "Emojis.txt"), "UTF-8"));
+
+
+                wordCreators[a] = new String[sizeStr];
+                charCreators[a]=new char[sizeChr];
+                sizeChr=0;
+                sizeStr=0;
+                //in = Main.class.getResourceAsStream(termFilePath+paths[a]+".txt");
+                in = new FileInputStream(termFilePath+paths[a]+".txt");
+                bufReader = new BufferedReader(new InputStreamReader(in));
                 while ((str = bufReader.readLine()) != null) {
-                    wordCreators[a][index++] = str;
+                    if (str.startsWith(starting)){
+                        charCreators[a][sizeChr++] = (char)(Integer.parseInt(str.substring(starting.length())));
+                    }
+                    else
+                        wordCreators[a][sizeStr++] = str;
                 }
-                System.out.println("size is " + size);
+                //in = Main.class.getResourceAsStream(termFilePath+paths[a]+"Emojis.txt");
+                in = new FileInputStream(termFilePath+paths[a]+"Emojis.txt");
+                bufReader = new BufferedReader(new InputStreamReader(in));
+                while ((str = bufReader.readLine()) != null) {
+                    if (str.startsWith(starting)){
+                        charCreators[a][sizeChr++] = (char)(Integer.parseInt(str.substring(starting.length())));
+                    }
+                    else
+                        wordCreators[a][sizeStr++] = str;
+                }
+               // System.out.println("size is " + size);
 
                 printArray(wordCreators[a]);
 
@@ -170,10 +297,10 @@ Also prints a message randomly generated from a list of messages with intent to 
             wordCreators[2] = new String[]{"\u03C9", "v", "w", "w", "🇼", "w", "a", "vv", "w", "\u2C72",
                     "\u20A9", "\u019C", "-", ".", "u", "\uD83C\uDDFC", "\uD83C\uDDFB", "\u1E98", "\u03C9"};*/
 
-            unacceptables = new String[wordCreators[0].length * wordCreators[0].length *
+            /*unacceptables = new String[wordCreators[0].length * wordCreators[0].length *
                     wordCreators[1].length * wordCreators[1].length * wordCreators[1].length];
             int count = 0;
-            if (false)
+
             for (int i = 0; i < wordCreators[0].length; i++) {
                 for (int j = 0; j < wordCreators[2].length; j++) {
                     for (int k = 0; k < wordCreators[0].length; k++) {
@@ -183,7 +310,7 @@ Also prints a message randomly generated from a list of messages with intent to 
                         unacceptableSize++;
                     }
                 }
-            }
+            }*/
 
         }
     public String[] addArray(String[] arr, String msg){
@@ -198,6 +325,7 @@ Also prints a message randomly generated from a list of messages with intent to 
     public static boolean recursiveSearch(String message, List<Member> mentioned,
                                           int startingIndex, int wordIndex,int wordLength,String capMessage){
         if (wordIndex==5) {
+            //System.out.println("got here");
             int backIndex = startingIndex;
             int frontIndex = startingIndex;
             int wordLengthTemp = wordLength;
@@ -247,11 +375,13 @@ Also prints a message randomly generated from a list of messages with intent to 
 
                 }
             }
+            System.out.println("message was " +capMessage);
             return true;
         }
         int fakeWordIndex=wordIndex<3?wordIndex:wordIndex==3?1:0;
         for (int i=startingIndex; i<message.length(); i++) {// for each character...
             if (message.charAt(i)==' ')continue;
+            if ((int)message.charAt(i)>55000&&(int)message.charAt(i)<56000)continue;
             for (int j = 0; j < wordCreators[fakeWordIndex].length; j++) { // for each forbidden character...
                 if (i + wordCreators[fakeWordIndex][j].length() <= message.length() &&
                         message.substring(i, i + wordCreators[fakeWordIndex][j].length()).equals
@@ -264,6 +394,20 @@ Also prints a message randomly generated from a list of messages with intent to 
                     }
                 }
             }
+            for (int j = 0; j < charCreators[fakeWordIndex].length; j++) { // for each forbidden character...
+                if (i + 1 <= message.length() &&
+                        message.charAt(i)==
+                                (charCreators[fakeWordIndex][j])) {
+
+                    // if the character is that forbidden character...
+                    if (recursiveSearch(message, mentioned, i + 1,
+                            wordIndex + 1,1
+                            ,capMessage)) {
+                        return true;
+                    }
+                }
+            }
+
             for (int j = 0; j < wordCreators[2].length; j++) {
                 if (wordIndex == 1 && i + wordCreators[2][j].length() <= message.length() &&
                         message.substring(i, i + wordCreators[2][j].length())
@@ -275,13 +419,37 @@ Also prints a message randomly generated from a list of messages with intent to 
 
                 }
             }
+
+            for (int j = 0; j < charCreators[2].length; j++) {
+                if (wordIndex == 1 && i + 1 <= message.length() &&
+                        message.charAt(i)==
+                                (charCreators[2][j])) {// if the character is that forbidden character...
+                    if (recursiveSearch(message, mentioned, i + 1, 3,
+                            wordLength+1,capMessage)) {
+                        return true;
+                    }
+
+                }
+            }
             //System.out.println(i);
+
             for (int j = 0; j < wordCreators[0].length; j++) {
                 if (wordIndex == 3 && i+wordCreators[0][j].length() <= message.length() &&
                         message.substring(i, i + wordCreators[0][j].length())
                                 .equals(wordCreators[0][j])) {// if the character is that forbidden character...
                     if (recursiveSearch(message, mentioned, i + wordCreators[0][j].length(), 5,
                             wordLength+wordCreators[0][j].length(),capMessage)) {
+                        return true;
+                    }
+                }
+            }
+
+            for (int j = 0; j < charCreators[0].length; j++) {
+                if (wordIndex == 3 && i+1 <= message.length() &&
+                        message.charAt(i)==
+                                (charCreators[0][j])) {// if the character is that forbidden character...
+                    if (recursiveSearch(message, mentioned, i + 1, 5,
+                            wordLength+1,capMessage)) {
                         return true;
                     }
                 }
@@ -294,6 +462,10 @@ Also prints a message randomly generated from a list of messages with intent to 
 
 
     public static boolean scanMessage(String message, List<Member> mentioned){
+      /*  System.out.println("message length is " +message.length());
+        for (int i=0; i<message.length(); i++){
+            System.out.println((int)message.charAt(i));
+        }*/
         if (message.contains("<:wow:616378571018993769>")) return true;
         if (message.toLowerCase().replaceAll("\\.","").toLowerCase().equals("owo")){
             return true;
@@ -340,27 +512,170 @@ Also prints a message randomly generated from a list of messages with intent to 
             }
         return false;*/
     }
-        public boolean adminCommand(String term, int index, boolean isEmoji)throws  IOException{
-            if (index==0){
-                if (isEmoji){
-                    File file = new File(termFilePath+"\\startingEmojis.txt");
-                    FileWriter writer = new FileWriter(file,true);
-                    writer.write("\n"+term);
-                    writer.flush();
-                    writer.close();
-                    return true;
+        public void adminCommand(String[] args, String userID, MessageReceivedEvent event){
+            if (args[0].toLowerCase().equals("help")){
+                String s =
+                        "**Commands**:\n\n" +
+                                "**urallthots**: Lets everyone else know that they are a thot. Parameters: None.\n\n" +
+                                "**insult**: Displays the requested insult by insult index. Parameters: Integer (index)\n\n" +
+                                "**reinitialize**: Reinitializes your choice of {admins}, {unacceptables}, or {insults} based on files." +
+                                    " Parameters: String {\"unnaceptables\", \"admins\", or \"insults\"}.\n\n" +
+                                "**addAdmin**: Adds the mentioned user to the admin list permanently. Parameters: String {Mention of the user}.\n\n" +
+                                "**addCom**: Adds the specified character to the banlist. Parameters:" +
+                                "\n*character*: the character that you'd like to ban. *index*: 0 for starting, 1 for transition," +
+                                "2 for middle. *isEmote*: true if is emote, false if not.";
+                event.getChannel().sendMessage(s).queue();
+
+                return;
+            }
+            if (args[0].toLowerCase().equals("urallthots")){
+
+                event.getChannel().sendMessage("ur all thots.").queue();
+
+                return;
+            }
+            if (args[0].toLowerCase().equals("insult")){
+                if (args.length!=2){
+                    event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                    return;
+                }
+                int num=0;
+                try {
+                     num = Integer.parseInt(args[1]);
+                }
+                catch (Exception e){
+                    event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                    return;
+                }
+                if (num>=insults.length){
+                    event.getChannel().sendMessage("Invalid insult value.").queue();
+                    return;
+                }
+                if (insults[num].endsWith("jpg")){
+                    event.getChannel().sendMessage(" ").addFile(new File(insults[num])).queue();
+                }
+                else {
+                    event.getChannel().sendMessage(insults[num]).queue();
+                }
+                return;
+            }
+            if (args[0].toLowerCase().equals("addcom")) {
+
+                if (args.length !=4||( !args[3].toLowerCase().equals("true")  && !args[3].toLowerCase().equals("false")
+                )){
+                    event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                    return;
+                }
+                int num=0;
+                try{
+                    num=Integer.parseInt(args[2]);
+                }
+                catch (Exception e){
+                    event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                    return;
+                }
+
+                String emoji = args[3].toLowerCase().equals("true")?"Emojis":"";
+                String position = num==0?"starting":num==1?"transition":num==2?"middle":"error";
+                try {
+                    File file = new File(termFilePath+"/"+position+emoji+".txt");
+
+
+                    System.out.println("adding to "+termFilePath+"/"+position+emoji+".txt");
+                    char lastChar = args[1].charAt(args[1].length()-1);
+                   // System.out.println((char)56810+","+((char)56810==(int)message.charAt(i)));
+                    int written = (int)lastChar;
+
+                   /* URL resourceUrl = getClass().getResource(termFilePath+"/"+position+emoji+".txt");
+                    File file1 = new File(resourceUrl.toURI());*/
+                    OutputStream output = new FileOutputStream(termFilePath+"/"+position+emoji+".txt",true);
+
+
+                    output.write(("\n!"+written).getBytes());
+
+                  /*  FileWriter writer = new FileWriter(file,true);
+                    BufferedWriter bufferedWriter=new BufferedWriter(writer);
+                    bufferedWriter.write("\n!"+written);
+                    bufferedWriter.flush();
+                    bufferedWriter.close();
+                    System.out.println("matches up:"+(written==args[1].charAt(args[1].length()-1))+", written is "
+                    +written );*/
+                    initializeUnacceptables();
+                    event.getChannel().sendMessage("Successfully added.").queue();
+                    return;
+                }
+                catch (Exception e){
+                    event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                    e.printStackTrace();
+                    return;
                 }
             }
-            else if (index==1){
+            else if (args[0].toLowerCase().equals("reinitialize")){
+                if (args[1].toLowerCase().equals("insults")) {
+                    initializeInsults();
+                    event.getChannel().sendMessage("Insults successfully re-initialized.").queue();
+                    return;
+                }
+                else if (args[1].toLowerCase().equals("unacceptables")) {
+                    initializeUnacceptables();
+                    event.getChannel().sendMessage("Unacceptables successfully re-initialized.").queue();
+                    return;
+                }
+                else if (args[1].toLowerCase().equals("admins")) {
+                    initializeAdmins();
+                    event.getChannel().sendMessage("Admins successfully re-initialized.").queue();
+                    return;
+                }
 
+                else{
+                    event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                    return;
+                }
             }
-            else if (index==2){
+            else if (args[0].toLowerCase().equals("addadmin")){
+                System.out.println(userID+" is the id");
+                if (!contains(superAdmins,userID)){
+                    event.getChannel().sendMessage("Insufficient privileges.").queue();
+                    return;
+                }
+                else if (addAdmin(userID)){
+                    event.getChannel().sendMessage("Admin privileges successfully granted.").queue();
+                    return;
+                }
+                else{
+                    event.getChannel().sendMessage("Admin privileges could not be added. It is likely that " +
+                            "that user is already an admin.").queue();
+                    return;
+                }
+            }
+            else if (args[0].toLowerCase().equals("silence")){
+                if (silent){
+                    event.getChannel().sendMessage("I am already silent.").queue();
+                    return;
+                }
+                else{
+                    silent=true;
+                    event.getChannel().sendMessage("Entering silent mode.").queue();
+                    return;
+                }
+            }
+            else if (args[0].toLowerCase().equals("unsilence")){
+                if (silent){
+                    silent = false;
+                    event.getChannel().sendMessage("I am no longer silent.").queue();
+                    return;
+                }
+                else{
 
+                    event.getChannel().sendMessage("I am already vocal.").queue();
+                    return;
+                }
             }
+
             else{
-                return false;
+                event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                return;
             }
-            return false;
         }
     @Override
         public void onMessageReceived(MessageReceivedEvent event){
@@ -368,6 +683,9 @@ Also prints a message randomly generated from a list of messages with intent to 
         }
 
     public void onMessageReceived(MessageReceivedEvent event,String s){
+        if (!servers.containsKey(event.getGuild().getName())){
+            servers.put(event.getGuild().getName(), (long) -5001);
+        }
         /*If user that sent message is a bot, return to avoid infinite loops.*/
         if (event.getAuthor().isBot()) return;
         if (event.getChannel().getName().endsWith("introductions"))
@@ -381,86 +699,26 @@ Also prints a message randomly generated from a list of messages with intent to 
         if (s.equals(""))
             message = event.getMessage().getContentRaw();
         else message=s;
+
         //message=message.toLowerCase();
         Predict predict = new Predict();
         List<Emote> lis = event.getMessage().getEmotes();
         int size =event.getMessage().getAttachments().size();
+        userID=userID.replaceAll("!","");
         for (int b=0; b<1; b++){
-        if (message.startsWith("!!")&&contains(admins,userID)){
+
+        if (message.startsWith("!!")&&(contains(admins,userID)||contains(superAdmins,userID))){
             message=message.substring(2,message.length());
             String[] args = message.split(" "); // S
-            if (args[0].toLowerCase().equals("urallthots")){
-                if (!contains(admins,userID)){
-                    break;
-                }
-                event.getChannel().sendMessage("ur all thots.").queue();
-
-                return;
-            }
-            if (args[0].toLowerCase().equals("insult")){
-                if (args.length!=2){
-                    event.getChannel().sendMessage("Invalid args.").queue();
-                    return;
-                }
-                int num = Integer.parseInt(args[1]);
-                if (num>=insults.length)break;
-                if (insults[num].endsWith("jpg")){
-
-                    event.getChannel().sendMessage(" ")
-                            .addFile(new File(insults[num])).queue();
-
-                }
-                else {
-                    event.getChannel().sendMessage(
-                            insults[num]).queue();
-
-                }
-
-                return;
-            }
-
-
-            if (args[0].toLowerCase().equals("addcom")) {
-                if (!userID.equals("213323815386611713")){
-                    break;
-                }
-                if (args.length !=4||( !args[3].toLowerCase().equals("true")  && !args[3].toLowerCase().equals("false")
-                )){
-                    event.getChannel().sendMessage("Invalid args.").queue();
-                    return;
-                }
-                int num=0;
-                try{
-                    num=Integer.parseInt(args[2]);
-                }
-                catch (Exception e){
-                    event.getChannel().sendMessage("Invalid args.").queue();
-                    return;
-                }
-                boolean emoji = args[3].toLowerCase().equals("true")?true:false;
-                try {
-                    if (!adminCommand(args[1], num, emoji)) {
-                        event.getChannel().sendMessage("Invalid args.").queue();
-                        return;
-                    }
-                    event.getChannel().sendMessage("Successfully added.").queue();
-                    return;
-                }
-                catch (Exception e){
-                    e.printStackTrace();
-                    return;
-                }
-            }
-            else{
-                event.getChannel().sendMessage("Invalid args.").queue();
-                return;
-            }
+            adminCommand(args,userID,event);
+            return;
         }}
 
         /*Start by looking at any attachments the user sent. If there are images,
         analyze the image using the prediction algorithm; if a violation is found,
         immediately call out the user, delete the message, and return.
          */
+
         for (int i=0; i<size; i++){
             System.out.println(event.getMessage().getAttachments().get(i));
             if (event.getMessage().getAttachments().get(i).isImage()){
@@ -495,6 +753,8 @@ Also prints a message randomly generated from a list of messages with intent to 
             }
         }
         System.out.println(user+": "+message);
+
+
         /*if no violations are found, check the user's message, along with any mentioned
         users, and check them for violations.
          */
@@ -504,7 +764,7 @@ Also prints a message randomly generated from a list of messages with intent to 
         if (deletion) {
             String insult = getRandomInsult();
             if (insult.endsWith("jpg")){
-                if (System.currentTimeMillis()-lastMessageTime>5000) {
+                if (System.currentTimeMillis()-lastMessageTime>5000&&!silent) {
                     Message atUser = new MessageBuilder()
                             .append("<@" + userID + "> ").build();
                     event.getChannel().sendMessage("<@" + userID + "> ")
@@ -515,17 +775,17 @@ Also prints a message randomly generated from a list of messages with intent to 
                 return;
             }
             else {
-                if (System.currentTimeMillis()-lastMessageTime>5000) {
+                if (System.currentTimeMillis()-servers.get(event.getGuild().getName())>5000&&!silent) {
                     event.getChannel().sendMessage("<@" + userID + "> " +
                             insult).queue();
-                    lastMessageTime=System.currentTimeMillis();
+                    servers.replace(event.getGuild().getName(),System.currentTimeMillis());
                 }
                 event.getChannel().deleteMessageById(msgID).queue();
                 return;
             }
         }
 
-        Runnable r = new Main(event,message);
+        Runnable r = new Main(event,message+":00");
         new Thread(r).start();
 
 
@@ -545,18 +805,25 @@ Also prints a message randomly generated from a list of messages with intent to 
 
            // System.out.println(event==null);
             String message=msg;
+            int startSize=charCreators[0].length;
+            int transitionSize=charCreators[1].length;
+            int midSize=charCreators[2].length;
+
             long startingTime = System.currentTimeMillis()/1000;
             //System.out.println("looking for " +message);
             //System.out.println("looking for " +event.getMessage().toString());
             while (System.currentTimeMillis()/1000-startingTime<100){
 
                 if (!message.equals(event.getChannel()
-                        .retrieveMessageById(event.getMessageId()).complete().getContentRaw())){
+                        .retrieveMessageById(event.getMessageId()).complete().getContentRaw())
+                ||startSize!=charCreators[0].length || transitionSize!=charCreators[1].length||midSize!=charCreators[2].length){
                    // System.out.println("not equal!");
                     onMessageReceived(event,event.getChannel()
                             .retrieveMessageById(event.getMessageId()).complete().getContentRaw());
                     break;
                 }
+               // if (event.getMessage().getReactions().get(i).getReactionEmote().)
+                sleep(1000);
             }
             //System.out.println("done");
         }

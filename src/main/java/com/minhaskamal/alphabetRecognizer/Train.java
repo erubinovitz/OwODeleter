@@ -21,7 +21,8 @@ public class Train {
 		int types = 79;
 		String[] stringFilePaths = new String[types];
 		for(int i=1; i<=types; i++){
-			stringFilePaths[i-1] = "src/res/trainingData/" + i;
+			//stringFilePaths[i-1] = "src/res/trainingData/" + i;
+			stringFilePaths[i-1] = "/home/ubuntu/res/trainingData/" + i;
 		}
 		
 		ArrayList<String> filePathList = new ArrayList<String>();
@@ -58,12 +59,13 @@ public class Train {
 		
 		weightedStandardPixelTrainer.train(filePaths, ids);
 		WeightedStandardImage weightedStandardImage = weightedStandardPixelTrainer.getWeightedStandardImage();
-		weightedStandardImage.saveKnowledge("src/res/knowledge/KnowledgeAlphabet.log");
-		
+		//weightedStandardImage.saveKnowledge("src/res/knowledge/KnowledgeAlphabet.log");
+		weightedStandardImage.saveKnowledge("/home/ubuntu/res/knowledge/KnowledgeAlphabet.log");
 		///test
 		for(int i=0; i<types; i++){		
 			Matrix mat = weightedStandardImage.getStandardImages(i);
-			mat.write("src/res/knowledge/imageRepresentation/stdImage " + i + ".png");
+			//mat.write("src/res/knowledge/imageRepresentation/stdImage " + i + ".png");
+			mat.write("/home/ubuntu/res/knowledge/imageRepresentation/stdImage " + i + ".png");
 		}
 		
 		System.out.println("Operation Successful!!!");
