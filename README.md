@@ -4,6 +4,8 @@ This discord bot is designed to delete messages containing variations of the phr
 
 When a message is sent that is detected to contain a forbidden phrase, the message is deleted, and a message (from a list of random messages) is sent to the user.
 
+A basic machine learning framework is used to attempt to detect text from image- see example here https://im2.ezgif.com/tmp/ezgif-2-85fabc2175cd.mp4
+
 The bot also has administrator commands. The following features are available (to use a command, type "!!" followed by the command):
 
 insult: Displays the requested insult by insult index. Parameters: Integer (index)
