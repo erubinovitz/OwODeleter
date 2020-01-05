@@ -21,16 +21,20 @@ import java.util.Scanner;
 import static java.lang.Thread.sleep;
 
 public class Main  extends ListenerAdapter implements Runnable {
-    static HashMap<String,Long> servers = new HashMap();
-    static String myToken ="NjEzNTU3ODU1MDg5NTkwMzAz.XZFfKw.Fm23hgqj53_UEkKghVmNzR9yFq4";//INSERT YOUR TOKEN HERE!!
+    static HashMap<Long,Long> servers = new HashMap();
+    static String myToken ="NjEzNTU3ODU1MDg5NTkwMzAz.Xe13cA.HrHo4BqLaBn-I6k23Tz9H4i1pOs";//INSERT YOUR TOKEN HERE!!
     static String[] unacceptables;
     static String[] insults;
     static String[][] wordCreators = new String[3][];
     static char[][] charCreators = new char[3][];
+    static HashMap<String, Integer> forbiddenWords;
+    static HashMap<Character,Integer> forbiddenChars;
     static ArrayList<String> admins = new ArrayList<>();
     static ArrayList<String> superAdmins = new ArrayList<>();
-    static boolean silent;
+    static HashMap<Long,Boolean>  silentMap;
+    static HashMap<Long, Boolean> lurkMap;
     static int unacceptableSize;
+    static Searcher searcher;
     /*File path to read insults from.*/
     static String srcPath="../../../../../../../../src/main/java/com/minhaskamal/alphabetRecognizer/";
  /*   static String insultFilePath="../insults/";
@@ -107,21 +111,8 @@ public class Main  extends ListenerAdapter implements Runnable {
     public boolean addAdmin(String s){
         if (admins.contains(s))return false;
         try {
-
-
-
-          /*  URL resourceUrl = getClass().getResource(adminFilePath);
-            File file1 = new File(resourceUrl.toURI());*/
             OutputStream output = new FileOutputStream(adminFilePath,true);
-
-
             output.write(("\n"+s).getBytes());
-/*
-            File file = new File(adminFilePath);
-            FileWriter writer = new FileWriter(file, true);
-            writer.write("\n" + s);
-            writer.flush();
-            writer.close();*/
             admins.add(s);
             return true;
         }
@@ -132,13 +123,14 @@ public class Main  extends ListenerAdapter implements Runnable {
     }
     public static void main(String[] args) throws LoginException {
 
-        final String dir = System.getProperty("user.dir");
-        System.out.println("current dir = " + dir);
             initializeUnacceptables();
             initializeInsults();
             initializeAdmins();
             initializeSuperAdmins();
             Train train = new Train();
+            silentMap = new HashMap<>();
+            lurkMap = new HashMap<>();
+            searcher = new Searcher(forbiddenWords,forbiddenChars);
             JDABuilder builder = new JDABuilder(AccountType.BOT);
             String token = myToken;
             builder.setToken(token);
@@ -206,6 +198,68 @@ public class Main  extends ListenerAdapter implements Runnable {
             e.printStackTrace();
         }
     }
+
+
+    public static void initializeUnacceptablesHash() {
+        Scanner sc;
+        String[] paths = new String[]{"/starting","/middle","/transitioning"};
+        String starting="!";
+        forbiddenChars = new HashMap<>();
+        forbiddenWords = new HashMap<>();
+        try {
+            for (int a = 0; a < 3; a++) {
+
+                System.out.println("path is " +termFilePath + paths[a] + ".txt");
+
+                String str;
+
+                //InputStream in = Main.class.getResourceAsStream(termFilePath+paths[a]+".txt");
+                InputStream in = new FileInputStream(termFilePath+paths[a]+".txt");
+                BufferedReader bufReader = new BufferedReader(new InputStreamReader(in));
+
+
+
+
+/*
+                wordCreators[a] = new String[sizeStr];
+                charCreators[a]=new char[sizeChr];
+                sizeChr=0;
+                sizeStr=0;*/
+                //in = Main.class.getResourceAsStream(termFilePath+paths[a]+".txt");
+                in = new FileInputStream(termFilePath+paths[a]+".txt");
+                bufReader = new BufferedReader(new InputStreamReader(in));
+                while ((str = bufReader.readLine()) != null) {
+                    if (str.startsWith(starting)){
+                        forbiddenChars.put( (char)(Integer.parseInt(str.substring(starting.length()))),a);
+                    }
+                    else
+                       forbiddenWords.put(str,a);
+                }
+                //in = Main.class.getResourceAsStream(termFilePath+paths[a]+"Emojis.txt");
+                in = new FileInputStream(termFilePath+paths[a]+"Emojis.txt");
+                bufReader = new BufferedReader(new InputStreamReader(in));
+                while ((str = bufReader.readLine()) != null) {
+                    if (str.startsWith(starting)){
+                        forbiddenChars.put( (char)(Integer.parseInt(str.substring(starting.length()))),a);
+                    }
+                    else
+                        forbiddenWords.put(str,a);
+                }
+
+
+
+            }
+        }
+
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
+        System.out.println(forbiddenChars.toString());
+        System.out.println("\n\n"+forbiddenWords.toString());
+
+    }
+
     /*Initializes all banned words.*/
     public static void initializeUnacceptables() {
         Scanner sc;
@@ -213,7 +267,6 @@ public class Main  extends ListenerAdapter implements Runnable {
         String starting="!";
         try {
             for (int a = 0; a < 3; a++) {
-
 
                 System.out.println("path is " +termFilePath + paths[a] + ".txt");
                 int sizeStr = 0;
@@ -274,7 +327,6 @@ public class Main  extends ListenerAdapter implements Runnable {
                     else
                         wordCreators[a][sizeStr++] = str;
                 }
-               // System.out.println("size is " + size);
 
                 printArray(wordCreators[a]);
 
@@ -285,32 +337,6 @@ public class Main  extends ListenerAdapter implements Runnable {
             }
 
 
-
-          /*  wordCreators[0] = new String[]{"o", "0", "u", "q", "\uD83C\uDDF4", "\u014D", "\u53E3", "\u00F8", "\uD83C\uDD7E",
-                    "~", "Ø", "\u00F3", "\u00F2", "\u00FA", "\u00F9", "\u00D9", "ㅇ", "\u00F6", "\u00F5", "Ô", "Ó", "Ò", "\u2B55",
-                    "Û", "Ú", "Ü", "û", "ü", "ο", "[]", "()", "é", "-", "\u0030", "\uD83D\uDD35", "\u26AB", "\uD83D\uDD34", "\u26AA",
-                    "\u03BF", "\u039F", "\u110B", "\u11BC", "@", "\u00B0", "(", ")", "\uD83C\uDD7E", "\uD83C\uDD7E"
-                    , "\u03B8", "\u03F4","\uD83C\uDF11"};
-            printArray(wordCreators[0]);
-            System.out.println(wordCreators[0].length);
-            wordCreators[1] = new String[]{"__", "~", "~~", ".", "-", "_", "・", "\u30FB", "|",":"};
-            wordCreators[2] = new String[]{"\u03C9", "v", "w", "w", "🇼", "w", "a", "vv", "w", "\u2C72",
-                    "\u20A9", "\u019C", "-", ".", "u", "\uD83C\uDDFC", "\uD83C\uDDFB", "\u1E98", "\u03C9"};*/
-
-            /*unacceptables = new String[wordCreators[0].length * wordCreators[0].length *
-                    wordCreators[1].length * wordCreators[1].length * wordCreators[1].length];
-            int count = 0;
-
-            for (int i = 0; i < wordCreators[0].length; i++) {
-                for (int j = 0; j < wordCreators[2].length; j++) {
-                    for (int k = 0; k < wordCreators[0].length; k++) {
-                        for (int l = 0; l < wordCreators[1].length; l++)
-                            unacceptables[count++] = wordCreators[0][i] + wordCreators[1][l] +
-                                    wordCreators[2][j] + wordCreators[1][l] + wordCreators[0][k];
-                        unacceptableSize++;
-                    }
-                }
-            }*/
 
         }
     public String[] addArray(String[] arr, String msg){
@@ -462,10 +488,10 @@ public class Main  extends ListenerAdapter implements Runnable {
 
 
     public static boolean scanMessage(String message, List<Member> mentioned){
-      /*  System.out.println("message length is " +message.length());
+        System.out.println("message length is " +message.length());
         for (int i=0; i<message.length(); i++){
             System.out.println((int)message.charAt(i));
-        }*/
+        }
         if (message.contains("<:wow:616378571018993769>")) return true;
         if (message.toLowerCase().replaceAll("\\.","").toLowerCase().equals("owo")){
             return true;
@@ -481,36 +507,16 @@ public class Main  extends ListenerAdapter implements Runnable {
                 .trim()
                 //.replaceAll(" ","")
                 ,mentioned,0,0,0,message);
+/*     int i=0;
+     while (i<message.length()){
+         Integer valStr = forbiddenWords.get(Character.toString(message.charAt(i)));
+         Integer valChar = forbiddenChars.get(message.charAt(i));
+         if (valChar == 1 || valStr == 1 || message.charAt(i)==' '){
+             message = message.substring(0,i)+message.substring(i+1);
+         }
+     }
+     return searcher.search(message.toCharArray());*/
 
-      /*  for (int k=0; k<unacceptableSize;k++){
-            if (message
-                    .replaceAll(" ","")
-                    .replaceAll("_","")
-                    .replaceAll("\\*","")
-                    .toLowerCase()
-                    .contains(unacceptables[k])
-
-
-            ){
-
-                return true;
-            }
-            else {
-                for (int j = 0; j < mentioned.size(); j++) {
-                    if (mentioned.get(j).toString()
-                            .replaceAll(" ", "")
-                            .replaceAll("_", "")
-                            .replaceAll("\\*", "")
-                            .toLowerCase()
-                            .contains(unacceptables[k])) {
-
-                        return true;
-                    }
-                }
-            }
-                //System.out.println(message.trim().toLowerCase()+"!="+unacceptables[i]);
-            }
-        return false;*/
     }
         public void adminCommand(String[] args, String userID, MessageReceivedEvent event){
             if (args[0].toLowerCase().equals("help")){
@@ -523,7 +529,10 @@ public class Main  extends ListenerAdapter implements Runnable {
                                 "**addAdmin**: Adds the mentioned user to the admin list permanently. Parameters: String {Mention of the user}.\n\n" +
                                 "**addCom**: Adds the specified character to the banlist. Parameters:" +
                                 "\n*character*: the character that you'd like to ban. *index*: 0 for starting, 1 for transition," +
-                                "2 for middle. *isEmote*: true if is emote, false if not.";
+                                "2 for middle. *isEmote*: true if is emote, false if not.\n\n"+
+                                "**silence/unsilence**: The bot will continue to moderate messages, but will keep quiet about it.\n\n" +
+                                "**lurk/unlurk**: The bot will not moderate any messages."
+                                ;
                 event.getChannel().sendMessage(s).queue();
 
                 return;
@@ -562,7 +571,7 @@ public class Main  extends ListenerAdapter implements Runnable {
             if (args[0].toLowerCase().equals("addcom")) {
 
                 if (args.length !=4||( !args[3].toLowerCase().equals("true")  && !args[3].toLowerCase().equals("false")
-                )){
+                )||args[1].replaceAll(" ","").equals("")){
                     event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
                     return;
                 }
@@ -583,23 +592,9 @@ public class Main  extends ListenerAdapter implements Runnable {
 
                     System.out.println("adding to "+termFilePath+"/"+position+emoji+".txt");
                     char lastChar = args[1].charAt(args[1].length()-1);
-                   // System.out.println((char)56810+","+((char)56810==(int)message.charAt(i)));
                     int written = (int)lastChar;
-
-                   /* URL resourceUrl = getClass().getResource(termFilePath+"/"+position+emoji+".txt");
-                    File file1 = new File(resourceUrl.toURI());*/
                     OutputStream output = new FileOutputStream(termFilePath+"/"+position+emoji+".txt",true);
-
-
                     output.write(("\n!"+written).getBytes());
-
-                  /*  FileWriter writer = new FileWriter(file,true);
-                    BufferedWriter bufferedWriter=new BufferedWriter(writer);
-                    bufferedWriter.write("\n!"+written);
-                    bufferedWriter.flush();
-                    bufferedWriter.close();
-                    System.out.println("matches up:"+(written==args[1].charAt(args[1].length()-1))+", written is "
-                    +written );*/
                     initializeUnacceptables();
                     event.getChannel().sendMessage("Successfully added.").queue();
                     return;
@@ -649,25 +644,52 @@ public class Main  extends ListenerAdapter implements Runnable {
                 }
             }
             else if (args[0].toLowerCase().equals("silence")){
+                boolean silent = silentMap.get(event.getGuild().getIdLong());
                 if (silent){
                     event.getChannel().sendMessage("I am already silent.").queue();
                     return;
                 }
                 else{
-                    silent=true;
+                    silentMap.replace(event.getGuild().getIdLong(),true);
                     event.getChannel().sendMessage("Entering silent mode.").queue();
                     return;
                 }
             }
             else if (args[0].toLowerCase().equals("unsilence")){
+                boolean silent = silentMap.get(event.getGuild().getIdLong());
                 if (silent){
-                    silent = false;
+                    silentMap.replace(event.getGuild().getIdLong(),false);
                     event.getChannel().sendMessage("I am no longer silent.").queue();
                     return;
                 }
                 else{
 
                     event.getChannel().sendMessage("I am already vocal.").queue();
+                    return;
+                }
+            }
+            else if (args[0].toLowerCase().equals("lurk")){
+                boolean lurking = lurkMap.get(event.getGuild().getIdLong());
+                if (lurking){
+                    event.getChannel().sendMessage("I am already lurking.").queue();
+                    return;
+                }
+                else{
+                    lurkMap.replace(event.getGuild().getIdLong(),true);
+                    event.getChannel().sendMessage("I will now lurk.").queue();
+                    return;
+                }
+            }
+            else if (args[0].toLowerCase().equals("unlurk")){
+                boolean lurking = lurkMap.get(event.getGuild().getIdLong());
+                if (lurking){
+                    lurkMap.replace(event.getGuild().getIdLong(),false);
+                    event.getChannel().sendMessage("I am no longer lurking.").queue();
+                    return;
+                }
+                else{
+
+                    event.getChannel().sendMessage("I am already destroying all thots.").queue();
                     return;
                 }
             }
@@ -683,9 +705,14 @@ public class Main  extends ListenerAdapter implements Runnable {
         }
 
     public void onMessageReceived(MessageReceivedEvent event,String s){
-        if (!servers.containsKey(event.getGuild().getName())){
-            servers.put(event.getGuild().getName(), (long) -5001);
+        long id = event.getGuild().getIdLong();
+        if (!servers.containsKey(id)){
+            servers.put(id, (long) -5001);
+            lurkMap.put(id,false);
+            silentMap.put(id,false);
+
         }
+
         /*If user that sent message is a bot, return to avoid infinite loops.*/
         if (event.getAuthor().isBot()) return;
         if (event.getChannel().getName().endsWith("introductions"))
@@ -713,6 +740,7 @@ public class Main  extends ListenerAdapter implements Runnable {
             adminCommand(args,userID,event);
             return;
         }}
+        if (lurkMap.get(id))return;
 
         /*Start by looking at any attachments the user sent. If there are images,
         analyze the image using the prediction algorithm; if a violation is found,
@@ -761,6 +789,7 @@ public class Main  extends ListenerAdapter implements Runnable {
         boolean deletion =
                 scanMessage(message,
                         event.getMessage().getMentionedMembers());
+        boolean silent = silentMap.get(event.getGuild().getIdLong());
         if (deletion) {
             String insult = getRandomInsult();
             if (insult.endsWith("jpg")){
@@ -775,10 +804,10 @@ public class Main  extends ListenerAdapter implements Runnable {
                 return;
             }
             else {
-                if (System.currentTimeMillis()-servers.get(event.getGuild().getName())>5000&&!silent) {
+                if (System.currentTimeMillis()-servers.get(event.getGuild().getIdLong())>5000&&!silent) {
                     event.getChannel().sendMessage("<@" + userID + "> " +
                             insult).queue();
-                    servers.replace(event.getGuild().getName(),System.currentTimeMillis());
+                    servers.replace(event.getGuild().getIdLong(),System.currentTimeMillis());
                 }
                 event.getChannel().deleteMessageById(msgID).queue();
                 return;
