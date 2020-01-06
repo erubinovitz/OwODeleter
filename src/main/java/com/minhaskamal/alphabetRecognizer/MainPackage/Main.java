@@ -22,7 +22,7 @@ import static java.lang.Thread.sleep;
 
 public class Main  extends ListenerAdapter implements Runnable {
     static HashMap<Long,Long> servers = new HashMap();
-    static String myToken ="NjEzNTU3ODU1MDg5NTkwMzAz.Xe13cA.HrHo4BqLaBn-I6k23Tz9H4i1pOs";//INSERT YOUR TOKEN HERE!!
+    static String myToken ="";//INSERT YOUR TOKEN HERE!!
     static String[] unacceptables;
     static String[] insults;
     static String[][] wordCreators = new String[3][];
@@ -31,6 +31,7 @@ public class Main  extends ListenerAdapter implements Runnable {
     static HashMap<Character,Integer> forbiddenChars;
     static ArrayList<String> admins = new ArrayList<>();
     static ArrayList<String> superAdmins = new ArrayList<>();
+    static ArrayList<String> log = new ArrayList<>();
     static HashMap<Long,Boolean>  silentMap;
     static HashMap<Long, Boolean> lurkMap;
     static int unacceptableSize;
@@ -44,6 +45,7 @@ public class Main  extends ListenerAdapter implements Runnable {
     static String insultListPath="../resources/insultList.txt";*/
     static String insultFilePath="/home/ubuntu/insults/";
     static String termFilePath="/home/ubuntu/Terms";
+    static String logFilePath="/home/ubuntu/resources/log.txt";
     static String adminFilePath="/home/ubuntu/resources/admins.txt";
     static String superAdminFilePath="/home/ubuntu/resources/superAdmins.txt";
     static String insultListPath="/home/ubuntu/resources/insultList.txt";
@@ -58,6 +60,30 @@ public class Main  extends ListenerAdapter implements Runnable {
             System.out.print(arr[i]+" ");
         }
         System.out.println();
+    }
+    public static void initializeLog(){
+        try {
+            /*File insultFolder = new File(adminFilePath);
+
+            Scanner sc = new Scanner(insultFolder);*/
+            /*   InputStream in = Main.class.getResourceAsStream(adminFilePath);*/
+            InputStream in = new FileInputStream(logFilePath);
+            BufferedReader bufReader = new BufferedReader(new InputStreamReader(in));
+
+            String str;
+
+            while ((str = bufReader.readLine()) != null) {
+                System.out.println("adding " + str);
+                log.add(str);
+            }
+
+
+
+
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
     public static void initializeAdmins(){
         try {
@@ -339,6 +365,19 @@ public class Main  extends ListenerAdapter implements Runnable {
 
 
         }
+
+        public static boolean record(String s){
+            try {
+                OutputStream output = new FileOutputStream(logFilePath, true);
+                output.write(("\n" + s).getBytes());
+                log.add(s);
+                return true;
+            }
+            catch (Exception e){
+                return false;
+            }
+        }
+
     public String[] addArray(String[] arr, String msg){
         String[] ret = new String[arr.length+1];
         for (int i=0; i<arr.length; i++){
@@ -531,7 +570,8 @@ public class Main  extends ListenerAdapter implements Runnable {
                                 "\n*character*: the character that you'd like to ban. *index*: 0 for starting, 1 for transition," +
                                 "2 for middle. *isEmote*: true if is emote, false if not.\n\n"+
                                 "**silence/unsilence**: The bot will continue to moderate messages, but will keep quiet about it.\n\n" +
-                                "**lurk/unlurk**: The bot will not moderate any messages."
+                                "**lurk/unlurk**: The bot will not moderate any messages.\n\n"+
+                                "**log {n}**: shows the nth deleted message. If n is not present, shows number of deleted messages."
                                 ;
                 event.getChannel().sendMessage(s).queue();
 
@@ -693,6 +733,23 @@ public class Main  extends ListenerAdapter implements Runnable {
                     return;
                 }
             }
+            else if (args[0].toLowerCase().equals("log")){
+                if (args.length==1){
+                    event.getChannel().sendMessage("There are "+ log.size() + " deleted comments in my database.").queue();
+                    return;
+                }
+                else{
+                    try{
+                        String s = log.get(Integer.parseInt(args[1])-1);
+                        event.getChannel().sendMessage("Log Retreived: \""+ s+"\"").queue();
+                        return;
+                    }
+                    catch (Exception e){
+                        event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
+                        return;
+                    }
+                }
+            }
 
             else{
                 event.getChannel().sendMessage("Invalid args. Try !!help for help.").queue();
@@ -808,6 +865,7 @@ public class Main  extends ListenerAdapter implements Runnable {
                     event.getChannel().sendMessage("<@" + userID + "> " +
                             insult).queue();
                     servers.replace(event.getGuild().getIdLong(),System.currentTimeMillis());
+                    record(user+": "+message);
                 }
                 event.getChannel().deleteMessageById(msgID).queue();
                 return;
